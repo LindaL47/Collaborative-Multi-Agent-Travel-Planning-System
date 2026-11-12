@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # PostgreSQL数据库（支持pgvector扩展）
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: rpg_memory_postgres
+    environment:
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - rpg_memory_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d mydatabase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis缓存数据库
+  redis:
+    image: redis:7-alpine
+    container_name: rpg_memory_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - rpg_memory_network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # pgAdmin数据库管理界面（可选）
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: rpg_memory_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - rpg_memory_network
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  rpg_memory_network:
+    driver: bridge

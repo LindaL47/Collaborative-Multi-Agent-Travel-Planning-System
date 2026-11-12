@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400" height="840" viewBox="0 0 1400 840" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: 700 46px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #1f2a44; }
+      .subtitle { font: 400 24px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #52607a; }
+      .layer-title { font: 700 34px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #1f2a44; }
+      .layer-text { font: 400 24px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #2f3b52; }
+      .note { font: 500 22px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #34435e; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="840" fill="#f7f9fc"/>
+
+  <text x="80" y="92" class="title">三层记忆架构总览</text>
+  <text x="80" y="132" class="subtitle">只看“记忆层本体”：内容边界、时间跨度、认知作用</text>
+
+  <rect x="80" y="190" width="1240" height="170" rx="22" fill="#f8e7ec" stroke="#e7c9d5" stroke-width="2"/>
+  <text x="120" y="258" class="layer-title">长期记忆（Long-term）</text>
+  <text x="120" y="304" class="layer-text">沉淀大量历史经验，保存“可回看的人生轨迹”</text>
+
+  <rect x="80" y="390" width="1240" height="170" rx="22" fill="#e7edf9" stroke="#cdd8f0" stroke-width="2"/>
+  <text x="120" y="458" class="layer-title">核心记忆（Core）</text>
+  <text x="120" y="504" class="layer-text">凝练角色与用户关系的关键认知，决定“我是谁、你是谁”</text>
+
+  <rect x="80" y="590" width="1240" height="170" rx="22" fill="#ebf6e8" stroke="#cfe7c9" stroke-width="2"/>
+  <text x="120" y="658" class="layer-title">短期记忆（Short-term）</text>
+  <text x="120" y="704" class="layer-text">维持当前会话连续性，保证“这一轮说话接得上”</text>
+
+
+</svg>

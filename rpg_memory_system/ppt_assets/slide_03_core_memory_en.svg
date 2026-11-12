@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400" height="840" viewBox="0 0 1400 840" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: 700 44px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #1f2a44; }
+      .sub { font: 400 24px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #4c5c76; }
+      .h { font: 700 30px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #23334f; }
+      .t { font: 400 23px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #2e3d59; }
+      .k { font: 700 26px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #2a3f66; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="840" fill="#f4f7ff"/>
+  <text x="70" y="90" class="title">Core Memory: The Consistency Hub of Role and Relationship</text>
+  <text x="70" y="132" class="sub">It does not keep every detail; it preserves the key cognition shaping behavior</text>
+
+  <rect x="70" y="180" width="1260" height="590" rx="24" fill="#ffffff" stroke="#cfd9f3" stroke-width="2"/>
+
+  <circle cx="700" cy="480" r="210" fill="#edf2ff" stroke="#b7c8ef" stroke-width="3"/>
+  <text x="610" y="490" class="k">Core Memory</text>
+
+  <rect x="170" y="290" width="320" height="170" rx="18" fill="#e8efff"/>
+  <text x="205" y="350" class="h">User Profile</text>
+  <text x="205" y="395" class="t">preferences, personality, habits</text>
+
+  <rect x="910" y="290" width="320" height="170" rx="18" fill="#e8efff"/>
+  <text x="945" y="350" class="h">Core Events</text>
+  <text x="945" y="395" class="t">key milestones and turning points</text>
+
+  <rect x="540" y="610" width="320" height="120" rx="18" fill="#e8efff"/>
+  <text x="575" y="675" class="h">Core Reflections</text>
+
+  <line x1="490" y1="375" x2="575" y2="430" stroke="#90a8df" stroke-width="4"/>
+  <line x1="910" y1="375" x2="825" y2="430" stroke="#90a8df" stroke-width="4"/>
+  <line x1="700" y1="610" x2="700" y2="560" stroke="#90a8df" stroke-width="4"/>
+
+  <text x="120" y="540" class="h">Core Memory Stability</text>
+  <text x="120" y="590" class="t">• More stable than short-term memory, avoids personality drift</text>
+  <text x="120" y="630" class="t">• More distilled than long-term memory, keeps high-value conclusions</text>
+  <text x="120" y="670" class="t">• Defines persona consistency and relationship direction</text>
+
+  <text x="930" y="540" class="h">How to explain it</text>
+  <text x="930" y="590" class="t">"Core memory is like a portable dossier.</text>
+  <text x="930" y="630" class="t">Not a running log, but an identity-and-relationship summary."</text>
+</svg>

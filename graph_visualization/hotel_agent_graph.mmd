@@ -1,0 +1,5 @@
+flowchart TD
+    START([START]) --> validate_input[Validate A2A HotelTaskRequest]
+    validate_input --> search_retrieval[Static + dynamic mock hotel retrieval]
+    search_retrieval --> response_formatting[Format HotelTaskResponse with trace metadata]
+    response_formatting --> END([END])

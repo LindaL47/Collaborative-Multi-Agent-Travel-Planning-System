@@ -1,0 +1,5 @@
+flowchart TD
+    START([START]) --> validate_input[Validate A2A FlightTaskRequest]
+    validate_input --> search_retrieval[Static + dynamic mock flight retrieval]
+    search_retrieval --> response_formatting[Format FlightTaskResponse with trace metadata]
+    response_formatting --> END([END])

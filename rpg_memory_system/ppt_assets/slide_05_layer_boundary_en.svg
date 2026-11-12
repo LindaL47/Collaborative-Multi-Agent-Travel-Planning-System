@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400" height="840" viewBox="0 0 1400 840" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: 700 44px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #1f2a44; }
+      .sub { font: 400 24px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #4c5c76; }
+      .h { font: 700 28px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #23334f; }
+      .t { font: 400 22px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #2e3d59; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="840" fill="#f8fafc"/>
+  <text x="70" y="90" class="title">Layer Boundary Comparison: Clarify What Each Layer Should Remember</text>
+  <text x="70" y="132" class="sub">Use four dimensions to separate the three layers, without process details</text>
+
+  <rect x="70" y="190" width="1260" height="570" rx="24" fill="#ffffff" stroke="#d9e2f1" stroke-width="2"/>
+
+  <rect x="110" y="240" width="1180" height="80" fill="#eef2fa"/>
+  <text x="150" y="292" class="h">Dimension</text>
+  <text x="460" y="292" class="h">Short-term</text>
+  <text x="760" y="292" class="h">Core</text>
+  <text x="1060" y="292" class="h">Long-term</text>
+
+  <line x1="110" y1="330" x2="1290" y2="330" stroke="#d3dced" stroke-width="2"/>
+  <line x1="110" y1="430" x2="1290" y2="430" stroke="#d3dced" stroke-width="2"/>
+  <line x1="110" y1="530" x2="1290" y2="530" stroke="#d3dced" stroke-width="2"/>
+  <line x1="110" y1="630" x2="1290" y2="630" stroke="#d3dced" stroke-width="2"/>
+
+  <line x1="390" y1="240" x2="390" y2="720" stroke="#d3dced" stroke-width="2"/>
+  <line x1="690" y1="240" x2="690" y2="720" stroke="#d3dced" stroke-width="2"/>
+  <line x1="990" y1="240" x2="990" y2="720" stroke="#d3dced" stroke-width="2"/>
+
+  <text x="150" y="390" class="t">Time span</text>
+  <text x="150" y="490" class="t">Information granularity</text>
+  <text x="150" y="590" class="t">Stability</text>
+  <text x="150" y="690" class="t">Cognitive role</text>
+
+  <text x="430" y="390" class="t">Current dialogue window</text>
+  <text x="430" y="490" class="t">Turn-level details</text>
+  <text x="430" y="590" class="t">Low (changes quickly with dialogue)</text>
+  <text x="430" y="690" class="t">Carries the immediate exchange</text>
+
+  <text x="730" y="390" class="t">Mid-term persistent</text>
+  <text x="730" y="490" class="t">Key conclusions and summaries</text>
+  <text x="730" y="590" class="t">Medium-high (keeps persona stable)</text>
+  <text x="730" y="690" class="t">Defines identity and relationship</text>
+
+  <text x="1030" y="390" class="t">Long horizon across phases</text>
+  <text x="1030" y="490" class="t">Rich historical samples</text>
+  <text x="1030" y="590" class="t">High (continually accumulative)</text>
+  <text x="1030" y="690" class="t">Provides historical depth</text>
+</svg>

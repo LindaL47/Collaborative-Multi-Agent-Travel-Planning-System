@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400" height="840" viewBox="0 0 1400 840" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: 700 44px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #1f2a44; }
+      .sub { font: 400 24px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #4c5c76; }
+      .h { font: 700 30px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #23334f; }
+      .t { font: 400 23px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #2e3d59; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="840" fill="#fff6f9"/>
+  <text x="70" y="90" class="title">Long-term Memory: Experience Base and Historical Archive</text>
+  <text x="70" y="132" class="sub">Covers longer horizons and larger volume, preserving experiences not only conclusions</text>
+
+  <rect x="70" y="180" width="1260" height="590" rx="24" fill="#ffffff" stroke="#edd0dc" stroke-width="2"/>
+
+  <rect x="120" y="240" width="560" height="220" rx="20" fill="#fdebf1"/>
+  <text x="160" y="302" class="h">Four Main Types in Long-term Memory</text>
+  <text x="160" y="350" class="t">• Entity Events</text>
+  <text x="160" y="390" class="t">• Dialogue Logs</text>
+  <text x="160" y="430" class="t">• Long-term Reflections</text>
+
+  <rect x="120" y="500" width="560" height="220" rx="20" fill="#fdebf1"/>
+  <text x="160" y="562" class="h">Narrative Value</text>
+  <text x="160" y="610" class="t">1. Gives the character real historical depth</text>
+  <text x="160" y="650" class="t">2. Supports consistency across chapters and tasks</text>
+  <text x="160" y="690" class="t">3. Forms a reviewable growth trajectory</text>
+
+  <rect x="730" y="240" width="550" height="220" rx="20" fill="#fdebf1"/>
+  <text x="770" y="302" class="h">Typical Record Schema (Example)</text>
+  <text x="770" y="350" class="t">• id / content / created_at</text>
+  <text x="770" y="390" class="t">• role (in dialogue logs)</text>
+  <text x="770" y="430" class="t">• embedding (semantic vector field)</text>
+
+  <rect x="730" y="500" width="550" height="220" rx="20" fill="#fdebf1"/>
+  <text x="770" y="562" class="h">Suggested Talking Line</text>
+  <text x="770" y="610" class="t">"Long-term memory is not one sentence,</text>
+  <text x="770" y="650" class="t">but a growing archive of lived experience."</text>
+</svg>

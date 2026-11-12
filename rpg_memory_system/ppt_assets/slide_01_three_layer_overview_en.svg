@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400" height="840" viewBox="0 0 1400 840" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: 700 46px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #1f2a44; }
+      .subtitle { font: 400 24px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #52607a; }
+      .layer-title { font: 700 34px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #1f2a44; }
+      .layer-text { font: 400 24px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #2f3b52; }
+      .note { font: 500 22px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #34435e; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="840" fill="#f7f9fc"/>
+
+  <text x="80" y="92" class="title">Three-Layer Memory Architecture Overview</text>
+  <text x="80" y="132" class="subtitle">Focus on memory layers only: boundaries, time span, and cognitive role</text>
+
+  <rect x="80" y="190" width="1240" height="170" rx="22" fill="#f8e7ec" stroke="#e7c9d5" stroke-width="2"/>
+  <text x="120" y="258" class="layer-title">Long-term Memory</text>
+  <text x="120" y="304" class="layer-text">Accumulates rich history and preserves a reviewable life trajectory</text>
+
+  <rect x="80" y="390" width="1240" height="170" rx="22" fill="#e7edf9" stroke="#cdd8f0" stroke-width="2"/>
+  <text x="120" y="458" class="layer-title">Core Memory</text>
+  <text x="120" y="504" class="layer-text">Distills key character-user cognition and defines who I am and who you are</text>
+
+  <rect x="80" y="590" width="1240" height="170" rx="22" fill="#ebf6e8" stroke="#cfe7c9" stroke-width="2"/>
+  <text x="120" y="658" class="layer-title">Short-term Memory</text>
+  <text x="120" y="704" class="layer-text">Maintains current-session continuity so each conversational turn connects</text>
+
+
+</svg>

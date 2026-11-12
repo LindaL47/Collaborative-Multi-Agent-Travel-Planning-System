@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400" height="840" viewBox="0 0 1400 840" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: 700 44px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #1f2a44; }
+      .sub { font: 400 24px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #4c5c76; }
+      .h { font: 700 30px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #23334f; }
+      .t { font: 400 23px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #2e3d59; }
+      .k { font: 700 26px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #2a3f66; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="840" fill="#f4f7ff"/>
+  <text x="70" y="90" class="title">核心记忆：关系与角色的一致性中枢</text>
+  <text x="70" y="132" class="sub">不追求“全量细节”，而是保留最影响角色行为的关键认知</text>
+
+  <rect x="70" y="180" width="1260" height="590" rx="24" fill="#ffffff" stroke="#cfd9f3" stroke-width="2"/>
+
+  <circle cx="700" cy="480" r="210" fill="#edf2ff" stroke="#b7c8ef" stroke-width="3"/>
+  <text x="610" y="490" class="k">核心记忆</text>
+
+  <rect x="170" y="290" width="320" height="170" rx="18" fill="#e8efff"/>
+  <text x="205" y="350" class="h">用户画像</text>
+  <text x="205" y="395" class="t">偏好、性格、习惯</text>
+
+  <rect x="910" y="290" width="320" height="170" rx="18" fill="#e8efff"/>
+  <text x="945" y="350" class="h">核心事件</text>
+  <text x="945" y="395" class="t">关键节点与转折</text>
+
+  <rect x="540" y="610" width="320" height="120" rx="18" fill="#e8efff"/>
+  <text x="575" y="675" class="h">核心反思</text>
+
+  <line x1="490" y1="375" x2="575" y2="430" stroke="#90a8df" stroke-width="4"/>
+  <line x1="910" y1="375" x2="825" y2="430" stroke="#90a8df" stroke-width="4"/>
+  <line x1="700" y1="610" x2="700" y2="560" stroke="#90a8df" stroke-width="4"/>
+
+  <text x="120" y="540" class="h">核心记忆的“稳定性”</text>
+  <text x="120" y="590" class="t">• 比短期记忆稳定，避免角色忽冷忽热</text>
+  <text x="120" y="630" class="t">• 比长期记忆精炼，强调“高价值结论”</text>
+  <text x="120" y="670" class="t">• 作用是定义人设与关系走向</text>
+
+  <text x="930" y="540" class="h">你可这样讲</text>
+  <text x="930" y="590" class="t">“核心记忆像角色的随身档案，</text>
+  <text x="930" y="630" class="t">不是流水账，而是身份与关系摘要。”</text>
+</svg>

@@ -1,0 +1,258 @@
+# RPG记忆系统：按数据流动展开
+
+- 1. 原始对话进入系统
+  - 数据输入
+    - user_id：用户唯一标识，用来隔离不同玩家
+    - project_id：项目或游戏世界标识，用来隔离不同场景
+    - role：消息角色，取值为 user 或 assistant
+    - content：原始对话文本
+    - timestamp：系统写入时追加的秒级时间戳
+  - 短期记忆写入
+    - 写入 Redis
+    - key：short_term:{user_id}:{project_id}
+    - value：JSON数组，每条包含 role、content、timestamp
+    - TTL：3600秒
+    - 最大长度：60条
+    - 超过60条时只保留最新60条
+  - 阈值判断
+    - 小于60条：只保存在短期记忆中
+    - 达到60条：触发一轮记忆处理
+    - 60到120条：本质是下一批短期记忆继续累计，达到60条再触发下一轮
+
+- 2. 短期记忆进入记忆处理
+  - 处理输入
+    - 从 Redis 读取当前批次短期对话
+    - 按 role: content 形式拼成对话文本
+    - 检查用户画像记录是否存在
+    - 更新 dialogue_count，累计本批处理对话数
+  - 并行处理策略
+    - 用户画像抽取、事件抽取、反思生成三路并行
+    - 总超时20秒
+    - 单路失败时返回空结果，不影响其他成功结果
+  - 用户画像LLM
+    - 目标：把玩家稳定特征沉淀为核心记忆
+    - 输出JSON字段
+      - personal_info：姓名、年龄、性别、家乡、职业、教育背景
+      - personality：开朗、内向、乐观、谨慎等性格特征
+      - interests：运动、音乐、阅读、游戏、旅行等兴趣
+      - behavior_patterns：作息习惯、沟通方式、决策风格
+      - preferences：颜色、食物、风格、品牌、交互偏好
+      - social_relationships：家庭成员、朋友、同事等关系
+      - life_experiences：重大事件、成就、挫折
+      - values_beliefs：人生观、世界观、宗教信仰
+      - skills_abilities：专业技能、语言能力、特长
+      - other_traits：习惯、癖好、特殊标记
+    - 未提到的信息置为空数组或空字符串
+    - 温度参数：0.3
+    - 存储：与旧 profile_json 浅层合并，新字段覆盖旧字段
+  - 事件LLM
+    - 目标：把对话中的事实和剧情变化分成核心事件与实体事件
+    - core_events
+      - 剧情高度相关
+      - 玩家重大选择
+      - 影响深远
+      - 每批最多3到5条
+      - 一句话概括
+      - 不生成 embedding
+      - 作为核心记忆直接注入
+    - entity_events
+      - 日常互动
+      - 具体实体信息
+      - 较小事件
+      - 每批最多3到5条
+      - 一句话概括
+      - 生成 embedding
+      - 作为长期记忆通过 RAG 召回
+    - 温度参数：0.3
+  - 反思LLM
+    - 目标：让 Aliya 以自身视角形成对玩家的主观记忆
+    - core_reflections
+      - 重大事件相关
+      - 深层行为模式
+      - 关键转变或重大决策
+      - 不生成 embedding
+      - 作为核心记忆直接注入
+    - long_term_reflections
+      - 日常互动总结
+      - 玩家偏好
+      - 玩家习惯
+      - 普通行为模式
+      - 生成 embedding
+      - 作为长期记忆通过 RAG 召回
+    - 约束：基于真实对话，不夸大不编造
+    - 风格：Aliya口吻，简短自然，有少量主观感受
+    - 温度参数：0.7
+
+- 3. 记忆处理结果写入核心记忆
+  - 用户画像写入
+    - 表：Memory_user_profiles
+    - 字段：id、user_id、project_id、profile_json、dialogue_count、created_at、updated_at
+    - 约束：user_id + project_id 唯一
+    - 索引：user_id、project_id、user_id + project_id
+  - 核心事件写入
+    - 表：Memory_core_events
+    - 字段：id、user_id、project_id、content、created_at、updated_at
+    - 写入前按当前用户和项目检查已有 content
+    - 完全重复内容不再插入
+    - 无 embedding
+    - 索引：user_id、project_id、user_id + project_id
+  - 核心反思写入
+    - 表：Memory_core_reflections
+    - 字段：id、user_id、project_id、content、created_at、updated_at
+    - 写入前按当前用户和项目检查已有 content
+    - 完全重复内容不再插入
+    - 无 embedding
+    - 索引：user_id、project_id、user_id + project_id
+  - 核心记忆缓存刷新
+    - 从 MySQL 读取最新用户画像
+    - 核心事件取最近10条
+    - 核心反思取最近10条
+    - 写入 Redis key：core_memory:{user_id}:{project_id}
+    - value 包含 user_profile、core_events、core_reflections、last_updated
+  - 直接注入原因
+    - 核心记忆是高优先级信息
+    - 不走相似度召回，避免关键事实漏掉
+    - 用于保证 NPC 长期一致性
+  - 核心记忆整合
+    - dialogue_count 达到240后检查
+    - 核心事件超过20条时整合
+    - 核心反思超过20条时整合
+    - 整合方式：合并相似项、消除冗余、精简表达、保留重点
+    - 整合成功后重置 dialogue_count
+
+- 4. 记忆处理结果写入长期记忆
+  - 实体事件入库
+    - 表：Memory_entity_events
+    - 字段：id、user_id、project_id、content、embedding、created_at、updated_at
+    - embedding：对事件文本生成的浮点数组
+    - 保存格式：MySQL JSON
+    - 索引：user_id、project_id、user_id + project_id
+    - 用途：RAG召回相关普通事件
+  - 原始对话入库
+    - 表：Memory_dialogue_logs
+    - 字段：id、user_id、project_id、role、content、embedding、created_at
+    - embedding：对 role: content 生成的浮点数组
+    - 保存格式：MySQL JSON
+    - 索引：user_id、project_id、user_id + project_id、role、created_at
+    - 用途：RAG召回历史对话，并通过上下文窗口恢复前后语境
+  - 长期反思入库
+    - 表：Memory_long_term_reflections
+    - 字段：id、user_id、project_id、content、embedding、created_at、updated_at
+    - embedding：对反思文本生成的浮点数组
+    - 保存格式：MySQL JSON
+    - 索引：user_id、project_id、user_id + project_id
+    - 用途：RAG召回相关偏好、习惯、行为模式总结
+  - Aliya背景故事入库
+    - 表：Memory_npc_stories
+    - 字段：id、story_name、content、embedding
+    - 不按 user_id 隔离，是全局 NPC 背景资料
+    - 索引：story_name
+    - 用途：RAG召回角色背景故事
+  - embedding设计取舍
+    - 当前使用 MySQL JSON 保存向量
+    - 检索时取出候选向量，在 Python 内存计算相似度
+    - 优点：实现简单，部署成本低
+    - 缺点：没有向量索引，数据量大时性能下降
+
+- 5. Aliya长期记忆切分为背景故事
+  - 数据来源
+    - 文件：Aliya长期记忆.md
+    - 初始化时读取整个 Markdown 文件
+  - 文本清洗
+    - 去除 HTML 标签
+    - 去除 Markdown 加粗标记
+    - 去除星号斜体标记
+    - 去除首尾空白
+  - 标题切分
+    - 二级标题作为大主题
+    - 三级标题与二级标题组合成 story_name
+    - 四级标题与上级标题组合成更细粒度 chunk
+    - 加粗项目支持加号、减号、数字编号
+    - 加粗文字会作为 chunk 标题的一部分
+  - 列表项切分
+    - 长列表项可以单独成块
+    - 列表项长度大于60字符时独立保存
+    - 短列表项并入当前块
+    - 会收集缩进子项
+  - chunk过滤
+    - 四级或加粗项目块超过80字符才立即保存
+    - 最终导入前保留 content 长度大于20字符的块
+  - 入库与召回
+    - story_name：标题路径或列表关键词
+    - content：清洗后的 chunk 正文
+    - embedding：对 content 生成向量
+    - 故事表已有数据时默认跳过
+    - 强制重建时先删除旧故事再重新导入
+    - 检索阶段默认返回 top_k=10
+    - 回复注入阶段通常使用前2条
+
+- 6. 当前用户消息触发RAG召回
+  - query向量生成
+    - 当前用户消息作为 query
+    - 生成 query embedding
+  - 匹配方法
+    - 使用余弦相似度
+    - 公式：点积除以两个向量模长
+    - 向量为空时相似度为0
+    - 结果裁剪到0到1
+  - 实体事件召回
+    - 按 user_id 和 project_id 过滤
+    - 条件：embedding 不为空
+    - 解析 JSON 向量
+    - 逐条计算余弦相似度
+    - 按相似度降序
+    - 返回 top_k，默认10
+  - 原始对话召回
+    - 按 user_id 和 project_id 过滤
+    - 条件：embedding 不为空
+    - 先计算每条历史消息相似度
+    - 选择最相关3条作为 anchor
+    - 每个 anchor 向前取4条
+    - 每个 anchor 向后取5条
+    - 每组最多10条
+    - 按 id 升序恢复对话顺序
+    - 目的：避免只召回单句导致上下文断裂
+  - 长期反思召回
+    - 按 user_id 和 project_id 过滤
+    - 条件：embedding 不为空
+    - 解析 JSON 向量
+    - 逐条计算余弦相似度
+    - 按相似度降序
+    - 返回 top_k，默认10
+  - Aliya故事召回
+    - 查询全局故事库
+    - 不按 user_id 过滤
+    - 条件：embedding 不为空
+    - 解析 JSON 向量
+    - 逐条计算余弦相似度
+    - 按相似度降序
+    - 返回 top_k，默认10
+
+- 7. NPC回复阶段组装记忆上下文
+  - 短期记忆注入
+    - 来源：Redis short_term
+    - 内容：最近对话历史
+    - 作用：保证当前聊天连贯性
+  - 核心记忆直接注入
+    - 来源：Redis core_memory
+    - 用户画像完整注入
+    - 核心事件注入
+    - 核心反思注入
+    - 不根据 query 筛选
+  - 长期记忆RAG注入
+    - 实体事件通常取前3条
+    - 历史对话通常取前3条
+    - 长期反思通常取前3条
+    - Aliya故事通常取前2条
+    - 每条可附带相似度分数
+  - NPC回复约束
+    - 自然友好
+    - 基于记忆做个性化回复
+    - 保持对话连贯
+    - 回复长度适中
+    - 信息不足时询问更多信息
+  - 回复回写
+    - 生成的 NPC 回复作为 assistant 消息
+    - 写回 Redis 短期记忆
+    - 继续参与后续60条一批的记忆沉淀
+

@@ -1,0 +1,18 @@
+flowchart TD
+    START([START]) --> input_understanding[Input understanding: evidence-first TravelPlan extraction]
+    input_understanding --> state_update[State update: canonical memory merge]
+    state_update --> clarification[Clarification and plan readiness check]
+    clarification --> route{Conditional routing}
+    route -->|general or needs info| user_response_formatting[User response formatting]
+    route -->|flight only| flight_delegation[Build FlightTaskRequest + log A2A exchange]
+    route -->|hotel only| hotel_delegation[Build HotelTaskRequest + log A2A exchange]
+    route -->|both / package| parallel_a2a_delegation[Parallel A2A fan-out + merge audit log]
+    route -->|multi-city| multi_city_delegation[Dynamic multi-city A2A fan-out]
+    flight_delegation --> after_flight{Need hotel too?}
+    after_flight -->|yes| hotel_delegation
+    after_flight -->|no| aggregation[Aggregation]
+    parallel_a2a_delegation --> aggregation
+    multi_city_delegation --> user_response_formatting
+    hotel_delegation --> aggregation
+    aggregation --> user_response_formatting
+    user_response_formatting --> END([END])

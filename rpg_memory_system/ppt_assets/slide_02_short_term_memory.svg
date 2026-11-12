@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400" height="840" viewBox="0 0 1400 840" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: 700 44px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #1f2a44; }
+      .sub { font: 400 24px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #4c5c76; }
+      .h { font: 700 30px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #23334f; }
+      .t { font: 400 23px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #2e3d59; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="840" fill="#f6fbf4"/>
+  <text x="70" y="90" class="title">短期记忆：会话现场的“工作台”</text>
+  <text x="70" y="132" class="sub">关注当前轮次与最近上下文，不承担长期人格定义</text>
+
+  <rect x="70" y="180" width="600" height="570" rx="22" fill="#ffffff" stroke="#cbe4bf" stroke-width="2"/>
+  <text x="110" y="240" class="h">内容形态</text>
+  <rect x="110" y="270" width="520" height="90" rx="14" fill="#edf8e8"/>
+  <text x="140" y="325" class="t">• role：谁在说（玩家 / NPC）</text>
+  <rect x="110" y="380" width="520" height="90" rx="14" fill="#edf8e8"/>
+  <text x="140" y="435" class="t">• content：这轮说了什么</text>
+  <rect x="110" y="490" width="520" height="90" rx="14" fill="#edf8e8"/>
+  <text x="140" y="545" class="t">• timestamp：发生在什么时候</text>
+
+  <text x="110" y="640" class="h">边界感</text>
+  <text x="110" y="688" class="t">• 只负责“眼前对话”连续性</text>
+  <text x="110" y="724" class="t">• 重点是短窗上下文，不是长期结论</text>
+
+  <rect x="730" y="180" width="600" height="270" rx="22" fill="#ffffff" stroke="#cbe4bf" stroke-width="2"/>
+  <text x="770" y="242" class="h">时间尺度（讲解建议）</text>
+  <line x1="780" y1="310" x2="1260" y2="310" stroke="#8ab57c" stroke-width="5"/>
+  <circle cx="820" cy="310" r="11" fill="#77a968"/>
+  <circle cx="980" cy="310" r="11" fill="#77a968"/>
+  <circle cx="1140" cy="310" r="11" fill="#77a968"/>
+  <text x="790" y="355" class="t">刚刚</text>
+  <text x="955" y="355" class="t">最近几轮</text>
+  <text x="1115" y="355" class="t">当前窗口边界</text>
+
+  <rect x="730" y="480" width="600" height="270" rx="22" fill="#ffffff" stroke="#cbe4bf" stroke-width="2"/>
+  <text x="770" y="542" class="h">对NPC的价值</text>
+  <text x="770" y="590" class="t">1. 记住上一句话，避免答非所问</text>
+  <text x="770" y="630" class="t">2. 保持语气与情绪延续</text>
+  <text x="770" y="670" class="t">3. 正确处理代词与省略表达</text>
+</svg>

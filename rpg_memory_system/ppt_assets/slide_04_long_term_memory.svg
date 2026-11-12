@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400" height="840" viewBox="0 0 1400 840" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: 700 44px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #1f2a44; }
+      .sub { font: 400 24px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #4c5c76; }
+      .h { font: 700 30px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #23334f; }
+      .t { font: 400 23px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #2e3d59; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="840" fill="#fff6f9"/>
+  <text x="70" y="90" class="title">长期记忆：角色经验库与历史沉淀层</text>
+  <text x="70" y="132" class="sub">覆盖更长时间、更大体量的信息，保存“经历”而非只保存“结论”</text>
+
+  <rect x="70" y="180" width="1260" height="590" rx="24" fill="#ffffff" stroke="#edd0dc" stroke-width="2"/>
+
+  <rect x="120" y="240" width="560" height="220" rx="20" fill="#fdebf1"/>
+  <text x="160" y="302" class="h">长期记忆的四类主体</text>
+  <text x="160" y="350" class="t">• 实体事件（Entity Events）</text>
+  <text x="160" y="390" class="t">• 对话日志（Dialogue Logs）</text>
+  <text x="160" y="430" class="t">• 长期反思（Long-term Reflections）</text>
+
+  <rect x="120" y="500" width="560" height="220" rx="20" fill="#fdebf1"/>
+  <text x="160" y="562" class="h">叙事价值</text>
+  <text x="160" y="610" class="t">1. 让角色拥有“历史厚度”</text>
+  <text x="160" y="650" class="t">2. 支撑跨章节、跨任务一致性</text>
+  <text x="160" y="690" class="t">3. 形成可回顾的成长线索</text>
+
+  <rect x="730" y="240" width="550" height="220" rx="20" fill="#fdebf1"/>
+  <text x="770" y="302" class="h">典型记录结构（示意）</text>
+  <text x="770" y="350" class="t">• id / content / created_at</text>
+  <text x="770" y="390" class="t">• role（在对话日志中）</text>
+  <text x="770" y="430" class="t">• embedding（语义向量字段）</text>
+
+  <rect x="730" y="500" width="550" height="220" rx="20" fill="#fdebf1"/>
+  <text x="770" y="562" class="h">讲解话术建议</text>
+  <text x="770" y="610" class="t">“长期记忆不是一段话，</text>
+  <text x="770" y="650" class="t">而是一整本按时间增长的经历档案。”</text>
+</svg>

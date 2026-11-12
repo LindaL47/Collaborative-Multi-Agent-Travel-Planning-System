@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400" height="840" viewBox="0 0 1400 840" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: 700 44px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #1f2a44; }
+      .sub { font: 400 24px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #4c5c76; }
+      .h { font: 700 28px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #23334f; }
+      .t { font: 400 22px 'Microsoft YaHei', 'PingFang SC', sans-serif; fill: #2e3d59; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="840" fill="#f8fafc"/>
+  <text x="70" y="90" class="title">三层边界对比：讲清“谁该记什么”</text>
+  <text x="70" y="132" class="sub">本页适合做收束：用四个维度区分三层记忆，不谈流程细节</text>
+
+  <rect x="70" y="190" width="1260" height="570" rx="24" fill="#ffffff" stroke="#d9e2f1" stroke-width="2"/>
+
+  <rect x="110" y="240" width="1180" height="80" fill="#eef2fa"/>
+  <text x="150" y="292" class="h">维度</text>
+  <text x="460" y="292" class="h">短期记忆</text>
+  <text x="760" y="292" class="h">核心记忆</text>
+  <text x="1060" y="292" class="h">长期记忆</text>
+
+  <line x1="110" y1="330" x2="1290" y2="330" stroke="#d3dced" stroke-width="2"/>
+  <line x1="110" y1="430" x2="1290" y2="430" stroke="#d3dced" stroke-width="2"/>
+  <line x1="110" y1="530" x2="1290" y2="530" stroke="#d3dced" stroke-width="2"/>
+  <line x1="110" y1="630" x2="1290" y2="630" stroke="#d3dced" stroke-width="2"/>
+
+  <line x1="390" y1="240" x2="390" y2="720" stroke="#d3dced" stroke-width="2"/>
+  <line x1="690" y1="240" x2="690" y2="720" stroke="#d3dced" stroke-width="2"/>
+  <line x1="990" y1="240" x2="990" y2="720" stroke="#d3dced" stroke-width="2"/>
+
+  <text x="150" y="390" class="t">时间跨度</text>
+  <text x="150" y="490" class="t">信息粒度</text>
+  <text x="150" y="590" class="t">稳定程度</text>
+  <text x="150" y="690" class="t">认知角色</text>
+
+  <text x="430" y="390" class="t">当前会话窗口</text>
+  <text x="430" y="490" class="t">具体轮次细节</text>
+  <text x="430" y="590" class="t">低（随对话快速变化）</text>
+  <text x="430" y="690" class="t">承接当下表达</text>
+
+  <text x="730" y="390" class="t">中期持续有效</text>
+  <text x="730" y="490" class="t">关键结论与摘要</text>
+  <text x="730" y="590" class="t">中高（保持人设一致）</text>
+  <text x="730" y="690" class="t">定义关系与身份</text>
+
+  <text x="1030" y="390" class="t">长期跨阶段</text>
+  <text x="1030" y="490" class="t">丰富历史样本</text>
+  <text x="1030" y="590" class="t">高（持续累积）</text>
+  <text x="1030" y="690" class="t">提供历史厚度</text>
+</svg>
