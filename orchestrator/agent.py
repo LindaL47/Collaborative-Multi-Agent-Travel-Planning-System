@@ -32,6 +32,7 @@ from agents.flight_agent.schemas import CabinClass, FlightSearchParameters, Flig
 from agents.hotel_agent.agent import HotelBookingAgent
 from agents.hotel_agent.schemas import HotelSearchParameters, HotelTaskRequest, HotelTaskResponse, RoomType
 from orchestrator.prompts import GENERAL_TRAVEL_SYSTEM_PROMPT, INTENT_EXTRACTION_SYSTEM_PROMPT
+from orchestrator.memory_store import MemoryStore, MemoryStoreError
 
 
 Route = Literal["respond", "general", "flight", "hotel", "both", "multi_city"]
@@ -222,6 +223,9 @@ class OrchestratorState(TypedDict, total=False):
     planner_confidence: float
     planner_decision: str
     llm_diagnostics: Dict[str, Any]
+    memory_profile: Dict[str, Any]
+    trip_budget: Dict[str, int]
+    memory_warning: str
 
 
 @dataclass(frozen=True)
@@ -2708,15 +2712,41 @@ def _merge_new_a2a_messages(base: List[Dict[str, Any]], candidates: List[List[Di
 class FriendlyAssistantOrchestrator:
     """User-facing conversational orchestrator for travel planning."""
 
-    def __init__(self, flight_agent: Optional[FlightBookingAgent] = None, hotel_agent: Optional[HotelBookingAgent] = None) -> None:
+    def __init__(self, flight_agent: Optional[FlightBookingAgent] = None, hotel_agent: Optional[HotelBookingAgent] = None, memory_store: Optional[MemoryStore] = None) -> None:
         self.flight_agent = flight_agent or FlightBookingAgent()
         self.hotel_agent = hotel_agent or HotelBookingAgent()
+        self.memory_store = memory_store
         self.nlu = TravelNLU()
         self.graph = self._build_graph()
 
     def chat(self, message: str, state: Optional[OrchestratorState] = None) -> OrchestratorState:
         """Process one user turn and return the updated conversation state."""
-        initial_state: OrchestratorState = state.copy() if state else {}
+        memory_data = None
+        memory_warning = ""
+        if self.memory_store:
+            try:
+                memory_data = self.memory_store.load()
+            except MemoryStoreError as exc:
+                memory_warning = str(exc)
+        restored = memory_data.get("active", {}) if memory_data and state is None else {}
+        initial_state: OrchestratorState = state.copy() if state else dict(restored)
+        profile = memory_data.get("profile", {}) if memory_data else initial_state.get("memory_profile", {})
+        initial_state["memory_profile"] = profile
+        params = dict(initial_state.get("travel_params", {}))
+        for target, source in (("origin", "home_airport"), ("cabin_class", "cabin_class"), ("room_type", "room_type")):
+            if target not in params and profile.get(source):
+                params[target] = profile[source]
+        initial_state["travel_params"] = params
+        if re.search(r"\b(new plan|new trip|planning a new trip|plan a new trip|start over|fresh trip|fresh plan)\b", message.lower()):
+            initial_state["trip_budget"] = {}
+        budgets = dict(initial_state.get("trip_budget", {}))
+        flight_limit = re.search(r"\bflight(?:s|\s+ticket)?(?:\s+(?:price|budget))?\s+(?:under|below|up to|less than)\s*\$?([1-9]\d*)\b", message, re.I)
+        hotel_limit = re.search(r"\bhotel(?:s|\s+room)?(?:\s+(?:price|budget))?\s+(?:under|below|up to|less than)\s*\$?([1-9]\d*)(?:\s*/\s*night|\s+per\s+night)?\b", message, re.I)
+        if flight_limit:
+            budgets["max_flight_price_usd"] = int(flight_limit.group(1))
+        if hotel_limit:
+            budgets["max_hotel_price_usd_per_night"] = int(hotel_limit.group(1))
+        initial_state["trip_budget"] = budgets
         initial_state["current_message"] = message
         initial_state.setdefault("conversation_history", [])
         initial_state.setdefault("travel_params", {})
@@ -2740,7 +2770,17 @@ class FriendlyAssistantOrchestrator:
         initial_state.setdefault("planner_decision", "not_started")
         initial_state.setdefault("llm_diagnostics", {})
         initial_state["session_id"] = _ensure_session(initial_state)
-        return self.graph.invoke(initial_state)
+        result = self.graph.invoke(initial_state)
+        if self.memory_store and memory_data is not None:
+            try:
+                self.memory_store.save_active(result)
+            except MemoryStoreError as exc:
+                memory_warning = str(exc)
+        if memory_warning:
+            result["memory_warning"] = memory_warning
+        else:
+            result.pop("memory_warning", None)
+        return result
 
     def _build_graph(self):
         graph = StateGraph(OrchestratorState)
@@ -2752,6 +2792,7 @@ class FriendlyAssistantOrchestrator:
         graph.add_node("parallel_a2a_delegation", self._parallel_a2a_delegation_node)
         graph.add_node("multi_city_delegation", self._multi_city_delegation_node)
         graph.add_node("aggregation", self._aggregation_node)
+        graph.add_node("budget_filter", self._budget_filter_node)
         graph.add_node("user_response_formatting", self._user_response_formatting_node)
 
         graph.add_edge(START, "input_understanding")
@@ -2776,8 +2817,9 @@ class FriendlyAssistantOrchestrator:
         )
         graph.add_edge("hotel_delegation", "aggregation")
         graph.add_edge("parallel_a2a_delegation", "aggregation")
-        graph.add_edge("multi_city_delegation", "user_response_formatting")
-        graph.add_edge("aggregation", "user_response_formatting")
+        graph.add_edge("multi_city_delegation", "budget_filter")
+        graph.add_edge("aggregation", "budget_filter")
+        graph.add_edge("budget_filter", "user_response_formatting")
         graph.add_edge("user_response_formatting", END)
         return graph.compile()
 
@@ -2846,10 +2888,13 @@ class FriendlyAssistantOrchestrator:
         updates: OrchestratorState = {}
 
         if extracted.get("_fresh_plan"):
+            profile = state.get("memory_profile", {})
             params = {
-                "cabin_class": previous_params.get("cabin_class", CabinClass.ECONOMY.value),
-                "room_type": previous_params.get("room_type", RoomType.STANDARD.value),
+                "cabin_class": profile.get("cabin_class", CabinClass.ECONOMY.value),
+                "room_type": profile.get("room_type", RoomType.STANDARD.value),
             }
+            if profile.get("home_airport"):
+                params["origin"] = profile["home_airport"]
             updates.update({
                 "flight_response": None,
                 "hotel_response": None,
@@ -2901,6 +2946,8 @@ class FriendlyAssistantOrchestrator:
                 "cabin_class": previous_params.get("cabin_class", CabinClass.ECONOMY.value),
                 "room_type": previous_params.get("room_type", RoomType.STANDARD.value),
             }
+            if state.get("memory_profile", {}).get("home_airport"):
+                params["origin"] = state["memory_profile"]["home_airport"]
             updates.update({"flight_response": None, "hotel_response": None, "final_aggregated_options": {}, "hotel_dates_inferred": False})
             constraints_changed = True
         else:
@@ -3673,6 +3720,42 @@ class FriendlyAssistantOrchestrator:
             "pending_clarifications": pending_after,
         }
 
+    def _budget_filter_node(self, state: OrchestratorState) -> OrchestratorState:
+        """Apply local price preferences after typed A2A searches finish."""
+        aggregated = dict(state.get("final_aggregated_options", {}))
+        profile = state.get("memory_profile", {})
+        trip_budget = state.get("trip_budget", {})
+        flight_limit = trip_budget.get("max_flight_price_usd") or profile.get("max_flight_price_usd")
+        hotel_limit = trip_budget.get("max_hotel_price_usd_per_night") or profile.get("max_hotel_price_usd_per_night")
+        warnings: List[str] = []
+
+        if aggregated.get("multi_city"):
+            itinerary = dict(aggregated["multi_city"])
+            for kind, limit, price_field in (("flights", flight_limit, "price_usd"), ("hotels", hotel_limit, "price_per_night_usd")):
+                segments = []
+                for segment in itinerary.get(kind, []):
+                    options = segment.get("options", [])
+                    selected = [item for item in options if getattr(item, price_field) <= limit] if limit else options
+                    if options and not selected:
+                        warnings.append(f"No {kind[:-1]} option for {segment.get('destination', 'this stop')} fits your ${limit} {'per-night' if kind == 'hotels' else 'per-ticket'} limit. You can raise the limit and search again.")
+                    segments.append({**segment, "options": selected})
+                itinerary[kind] = segments
+            aggregated["multi_city"] = itinerary
+        else:
+            for kind, limit, price_field in (("flights", flight_limit, "price_usd"), ("hotels", hotel_limit, "price_per_night_usd")):
+                options = aggregated.get(kind, [])
+                if not limit or not options:
+                    continue
+                selected = [item for item in options if getattr(item, price_field) <= limit]
+                aggregated[kind] = selected
+                if not selected:
+                    warnings.append(f"No {kind[:-1]} option fits your ${limit} {'per-night' if kind == 'hotels' else 'per-ticket'} limit. You can raise the limit and search again.")
+                elif kind == "flights":
+                    for leg in {item.trip_leg for item in options} - {item.trip_leg for item in selected}:
+                        warnings.append(f"No {leg} flight fits your ${limit} per-ticket limit. You can raise the limit and search again.")
+        aggregated["budget_warnings"] = warnings
+        return {**state, "final_aggregated_options": aggregated, "debug_trace": list(state.get("debug_trace", [])) + ["budget_filter"]}
+
     def _user_response_formatting_node(self, state: OrchestratorState) -> OrchestratorState:
         if state.get("message_to_show_user"):
             message = state["message_to_show_user"]
@@ -3738,6 +3821,9 @@ class FriendlyAssistantOrchestrator:
         if partials:
             lines.append("\n" + " ".join(partials))
 
+        for warning in aggregated.get("budget_warnings", []):
+            lines.append("\n" + warning)
+
         if flights and not hotels and not params.get("needs_hotel"):
             lines.append("\nWould you like me to add hotel options for the same trip?")
             state["awaiting_hotel_offer"] = True
@@ -3788,6 +3874,8 @@ class FriendlyAssistantOrchestrator:
         errors = [error for error in aggregated.get("errors", []) if error]
         if errors:
             lines.append("\nA quick note: one or more legs had limited mock availability, so I showed what I could find.")
+        for warning in aggregated.get("budget_warnings", []):
+            lines.append("\n" + warning)
         return "\n".join(lines).strip()
 
     @staticmethod
@@ -3807,9 +3895,10 @@ class FriendlyAssistantOrchestrator:
     after_flight -->|yes| hotel_delegation
     after_flight -->|no| aggregation[Aggregation]
     parallel_a2a_delegation --> aggregation
-    multi_city_delegation --> user_response_formatting
+    multi_city_delegation --> budget_filter[Apply budget preferences]
     hotel_delegation --> aggregation
-    aggregation --> user_response_formatting
+    aggregation --> budget_filter
+    budget_filter --> user_response_formatting
     user_response_formatting --> END([END])"""
 
 

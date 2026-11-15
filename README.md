@@ -80,11 +80,19 @@ python -m venv .venv
 .\.venv\Scripts\activate
 python -m pip install -r requirements.txt
 copy .env.example .env
-python -m pytest -q
+python -m pytest tests -q
 streamlit run interface/app.py
 ```
 
-Use `python -m pytest -q` rather than `pytest -q` on locked-down Windows laptops where `pytest.exe` may be blocked by Application Control.
+Use `python -m pytest tests -q` rather than `pytest -q` on locked-down Windows laptops where `pytest.exe` may be blocked by Application Control. The separate `rpg_memory_system` has its own dependencies and test suite.
+
+### Local memory demo
+
+The Streamlit sidebar lets one local demo user save a home airport, cabin, room type, and separate flight-per-ticket / hotel-per-night price limits. After each chat turn, SyncTrip saves the active route and the latest eight conversation messages to `.synctrip/memory.json`, which is excluded from Git. Reopening the page restores the conversation and lets the assistant continue the active trip; fresh A2A requests receive a new session ID.
+
+Use **Save plan to history** to record a planned trip with an optional decision and feedback. **Use saved route** starts a new draft from its route and asks for new dates. **Reset conversation** clears the active trip but keeps the profile and saved plans. **Clear all memory** removes the local file after you tick the confirmation box. These are mock plans, not bookings.
+
+Priority is explicit current request, then active trip, then saved profile. A request such as `flight under $500 and hotel under $150 per night` overrides saved price limits for the active trip. If the mock search has no option inside a limit, the assistant says so instead of showing an over-budget option. A corrupt or unwritable memory file leaves chat available and is not automatically overwritten.
 
 ---
 
