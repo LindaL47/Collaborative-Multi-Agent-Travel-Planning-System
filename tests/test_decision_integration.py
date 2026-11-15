@@ -131,3 +131,46 @@ def test_hotel_only_does_not_create_a_missing_flight_group():
     assert state["recommendation"].is_complete
     assert state["recommendation"].flights == []
     assert state["recommendation"].estimated_total_usd == 675
+
+
+def test_active_memory_restores_strategy_without_persisting_decision_results(tmp_path):
+    from orchestrator.memory_store import MemoryStore
+
+    store = MemoryStore(tmp_path / "memory.json")
+    FriendlyAssistantOrchestrator(memory_store=store).chat(PACKAGE + " Prioritize comfort, total budget $3500.")
+    saved = store.load()["active"]
+    assert saved["decision_strategy"] == "comfort"
+    assert "recommendation" not in saved
+    assert "budget_assessment" not in saved
+    restored = FriendlyAssistantOrchestrator(memory_store=store).chat("Change return date to 2025-06-21.")
+    assert restored["recommendation"].strategy == "comfort"
+    assert restored["trip_budget"]["total_budget_usd"] == 3500
+
+
+def test_general_price_advice_does_not_change_booking_preferences():
+    assistant = FriendlyAssistantOrchestrator()
+    first = assistant.chat(PACKAGE + " Prioritize comfort.")
+    general = assistant.chat("What is the cheapest season to visit Tokyo?", first)
+    assert general["route"] == "general"
+    assert general["decision_strategy"] == "comfort"
+    updated = assistant.chat("Change return date to 2025-06-21.", general)
+    assert updated["recommendation"].strategy == "comfort"
+
+
+def test_unsupported_guest_count_keeps_the_existing_handled_search_response():
+    state = FriendlyAssistantOrchestrator().chat(
+        "Only hotels in Tokyo from 2025-06-15 to 2025-06-20 for 10 guests."
+    )
+    assert state["message_to_show_user"]
+    assert state["recommendation"].is_complete is False
+    assert state["recommendation"].hotels == []
+
+
+def test_area_preference_and_total_budget_do_not_make_exact_dates_approximate():
+    state = FriendlyAssistantOrchestrator().chat(
+        PACKAGE.rstrip(".") + " near Shinjuku. Choose cheapest, total budget $3000."
+    )
+    assert state["pending_clarifications"] == []
+    assert state["recommendation"].strategy == "budget"
+    assert state["trip_budget"]["total_budget_usd"] == 3000
+    assert state["travel_params"]["location_preference"] == "Shinjuku"

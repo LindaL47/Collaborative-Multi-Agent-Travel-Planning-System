@@ -230,7 +230,6 @@ class OrchestratorState(TypedDict, total=False):
     memory_profile: Dict[str, Any]
     trip_budget: Dict[str, int]
     decision_strategy: str
-    decision_preferences_changed: bool
     budget_assessment: Optional[BudgetAssessment]
     recommendation: Optional[Recommendation]
     memory_warning: str
@@ -965,7 +964,10 @@ Planning contract:
         labeled_departure, labeled_return, labeled_check_in, labeled_check_out = self._extract_labeled_dates(lower)
         if self._contains_yearless_date(lower):
             entities["_date_year_missing"] = True
-        if departure_date and re.search(r"\b(?:around|about|approximately|approx|roughly|near|circa)\b.{0,45}(?:\d{1,2}|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)", lower):
+        # Approximation must qualify a date, not an area followed by a price.
+        month_pattern = "|".join(sorted(MONTHS, key=len, reverse=True))
+        approximate_date = rf"\b(?:around|about|approximately|approx|roughly|near|circa)\s+(?:the\s+)?(?:20\d{{2}}-\d{{2}}-\d{{2}}|\d{{1,2}}(?:st|nd|rd|th)?\b|(?:{month_pattern})\b)"
+        if departure_date and re.search(approximate_date, lower):
             entities["_date_is_approximate"] = True
         if departure_date and re.search(r"\barriv(?:e|ing|al)\b", lower):
             entities["_arrival_date_requested"] = True
@@ -2758,11 +2760,7 @@ class FriendlyAssistantOrchestrator:
             initial_state["trip_budget"] = {}
             initial_state["decision_strategy"] = "balanced"
         budgets = dict(initial_state.get("trip_budget", {}))
-        decision_preferences = extract_decision_preferences(message)
-        if "total_budget_usd" in decision_preferences:
-            budgets["total_budget_usd"] = decision_preferences["total_budget_usd"]
-        initial_state["decision_strategy"] = decision_preferences.get("strategy", initial_state.get("decision_strategy", "balanced"))
-        initial_state["decision_preferences_changed"] = bool(decision_preferences)
+        initial_state.setdefault("decision_strategy", "balanced")
         initial_state["budget_assessment"] = None
         initial_state["recommendation"] = None
         flight_limit = re.search(r"\bflight(?:s|\s+ticket)?(?:\s+(?:price|budget))?\s+(?:under|below|up to|less than)\s*\$?([1-9]\d*)\b", message, re.I)
@@ -2855,7 +2853,11 @@ class FriendlyAssistantOrchestrator:
     def _input_understanding_node(self, state: OrchestratorState) -> OrchestratorState:
         message = state.get("current_message", "")
         extracted = self.nlu.extract(message, state)
-        if extracted.intent == "ambiguous" and state.get("decision_preferences_changed") and not extracted.entities.get("_fresh_plan"):
+        decision_preferences = {} if extracted.general_question or extracted.intent == "out_of_scope" else extract_decision_preferences(message)
+        budgets = dict(state.get("trip_budget", {}))
+        if "total_budget_usd" in decision_preferences:
+            budgets["total_budget_usd"] = decision_preferences["total_budget_usd"]
+        if extracted.intent == "ambiguous" and decision_preferences and not extracted.entities.get("_fresh_plan"):
             params = state.get("travel_params", {})
             needs_flight, needs_hotel = bool(params.get("needs_flight")), bool(params.get("needs_hotel"))
             if needs_flight or needs_hotel:
@@ -2869,6 +2871,8 @@ class FriendlyAssistantOrchestrator:
         history.append({"role": "user", "content": message})
         return {
             **state,
+            "trip_budget": budgets,
+            "decision_strategy": decision_preferences.get("strategy", state.get("decision_strategy", "balanced")),
             "debug_trace": list(state.get("debug_trace", [])) + ["input_understanding"],
             "conversation_history": history,
             "extracted": {"intent": extracted.intent, **extracted.entities},

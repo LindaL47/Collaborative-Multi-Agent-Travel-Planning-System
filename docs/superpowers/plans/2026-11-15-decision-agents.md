@@ -56,7 +56,7 @@
 
 **Interfaces:** Each new agent exposes `mermaid_diagram() -> str`; `scripts/export_graphs.py` exports all five workflows.
 
-- [ ] Add setup/demo documentation, scoring/cost assumptions, and examples.
-- [ ] Export graphs; run the full application test suite and a Streamlit smoke check.
-- [ ] Review the full diff, resolve substantive findings with reproducing tests, and commit.
+- [x] Add setup/demo documentation, scoring/cost assumptions, and examples.
+- [x] Export graphs; run the full application test suite and a Streamlit smoke check.
+- [x] Review the full diff, resolve substantive findings with reproducing tests, and commit.
 - [ ] Push `feat/decision-agents` and verify that the remote commit matches local HEAD.

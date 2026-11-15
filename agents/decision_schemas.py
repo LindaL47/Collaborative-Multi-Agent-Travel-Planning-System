@@ -38,7 +38,7 @@ class HotelDecisionGroup(DecisionModel):
 class DecisionParameters(DecisionModel):
     flight_groups: list[FlightDecisionGroup] = Field(default_factory=list)
     hotel_groups: list[HotelDecisionGroup] = Field(default_factory=list)
-    passengers: int = Field(default=1, ge=1, le=9)
+    passengers: int = Field(default=1, ge=1)
     strategy: DecisionStrategy = "balanced"
     location_preference: Optional[str] = None
     total_budget_usd: Optional[int] = Field(default=None, ge=1)

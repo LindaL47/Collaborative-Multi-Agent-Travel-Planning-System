@@ -26,7 +26,7 @@ TRAVEL_FIELDS = {
 ACTIVE_FIELDS = {
     "multi_city_plan", "last_successful_multi_city_plan", "pending_clarifications",
     "last_completed_params", "conversation_focus", "awaiting_hotel_offer",
-    "planner_revision", "trip_budget",
+    "planner_revision", "trip_budget", "decision_strategy",
 }
 
 
@@ -124,7 +124,7 @@ class MemoryStore:
                 or not isinstance(active.get("pending_clarifications", []), list)
                 or any(not isinstance(value, str) for value in active.get("pending_clarifications", []))
                 or not isinstance(limits, dict)
-                or any(key not in {"max_flight_price_usd", "max_hotel_price_usd_per_night"} or type(value) is not int or value <= 0 for key, value in limits.items())
+                or any(key not in {"max_flight_price_usd", "max_hotel_price_usd_per_night", "total_budget_usd"} or type(value) is not int or value <= 0 for key, value in limits.items())
                 or not isinstance(turns, list)
                 or any(not isinstance(turn, dict) or turn.get("role") not in {"user", "assistant"} or not isinstance(turn.get("content"), str) for turn in turns)
                 or any(not isinstance(record, dict) or not isinstance(record.get("id"), str) or not isinstance(record.get("saved_at"), str) or not isinstance(record.get("decision"), str) or not isinstance(record.get("feedback"), str) or not isinstance(record.get("travel_params", {}), dict) or not isinstance(record.get("multi_city_plan", {}), dict) for record in data["history"])
