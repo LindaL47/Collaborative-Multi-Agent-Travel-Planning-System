@@ -59,4 +59,11 @@
 - [x] Add setup/demo documentation, scoring/cost assumptions, and examples.
 - [x] Export graphs; run the full application test suite and a Streamlit smoke check.
 - [x] Review the full diff, resolve substantive findings with reproducing tests, and commit.
-- [ ] Push `feat/decision-agents` and verify that the remote commit matches local HEAD.
+- [x] Push `feat/decision-agents` and verify that the remote commit matches local HEAD.
+
+## Delivery verification
+
+- Main application suite: 283 passed (254 baseline + 29 new decision tests).
+- Streamlit AppTest: chat, budget recommendations, debug rerender, preference changes, and saved-memory reload passed.
+- Independent review: all three substantive findings fixed with regressions; no deferred minor findings.
+- Pushed as the new remote branch `feat/decision-agents`; no merge requested.
