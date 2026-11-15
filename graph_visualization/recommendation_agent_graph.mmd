@@ -1,0 +1,6 @@
+flowchart TD
+    START([START]) --> validate_input[Validate RecommendationTaskRequest]
+    validate_input --> score_options[Score price, duration, quality and preferences]
+    score_options --> apply_total_budget[Select options within total budget when feasible]
+    apply_total_budget --> response_formatting[Explain selections in RecommendationTaskResponse]
+    response_formatting --> END([END])

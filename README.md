@@ -1,10 +1,10 @@
 # SyncTrip - Friendly Assistant Agent
 
-Your travel planner for mock flights, hotels, itinerary changes, and friendly travel conversations.
+Your travel planner for mock flights, hotels, budget assessment, explained recommendations, and itinerary changes.
 
 SyncTrip is a multi-agent mock travel booking assistant built with **Python 3.10+**, **LangGraph StateGraph**, strict typed **A2A task contracts**, mock flight/hotel data, Streamlit chat UI, deterministic tests, optional Ollama/Llama structured planning, and Mermaid/PNG graph visualisations.
 
-The user interacts with one assistant only. Internally, the orchestrator maintains conversation memory, interprets natural-language travel requests, asks clarifying questions when required, and delegates executable work to independent flight and hotel agents through typed A2A request/response objects.
+The user interacts with one assistant only. Internally, the orchestrator maintains conversation memory, interprets natural-language travel requests, asks clarifying questions when required, and delegates to independent flight, hotel, budget, and recommendation agents through typed A2A request/response objects.
 
 Full demo prompt:
 
@@ -21,7 +21,8 @@ This project is designed to satisfy the assignment rubric end-to-end:
 | Rubric area | Implementation |
 |---|---|
 | A2A Protocol Implementation | Schema-first Pydantic request/response contracts, UUID task lifecycle, required fields retained, timezone-aware metadata timestamps, strict agent identities, forbidden unknown fields, status lifecycle validation, trace IDs, protocol version, and response result counts. |
-| LangGraph Graph Design | Orchestrator, Flight Agent, and Hotel Agent are separate `StateGraph` workflows. The orchestrator uses conditional routing for general response, flight-only, hotel-only, package, and multi-city paths. |
+| LangGraph Graph Design | Orchestrator, Flight, Hotel, Budget Decision, and Recommendation agents are separate `StateGraph` workflows. Conditional routing supports general response, flight-only, hotel-only, package, and multi-city paths. |
+| Decision Intelligence | Per-leg and per-stay cost assessment, total-budget feasibility, and explainable budget / balanced / comfort recommendations after price filtering. |
 | Orchestrator Intelligence | Evidence-first planner interprets natural-language travel prompts. Optional LLM planning helps with messy language, while deterministic validation protects against incomplete plans, impossible dates, stale state, and unsafe delegation. |
 | Conversational UX | Friendly multi-turn chat, direct answers for general travel questions, no raw JSON/tracebacks exposed, readable flight/hotel sections, route interpretation shown for complex trips. |
 | Code Quality & Tests | Modular agents, typed schemas, deterministic pytest mode, sub-agent isolation tests, orchestrator tests, planner regression tests, and required scenario coverage. |
@@ -36,8 +37,14 @@ This project is designed to satisfy the assignment rubric end-to-end:
 /
 ├── orchestrator/
 │   ├── agent.py              # SyncTrip/Friendly Assistant LangGraph orchestrator
+│   ├── decision_support.py   # Option grouping, preferences, decision summaries
 │   └── prompts.py            # LLM planning / clarification / response prompts
 ├── agents/
+│   ├── decision_schemas.py   # Shared typed decision parameters and A2A contracts
+│   ├── budget_agent/
+│   │   └── agent.py          # Minimum trip cost and total-budget assessment graph
+│   ├── recommendation_agent/
+│   │   └── agent.py          # Explainable multi-criteria selection graph
 │   ├── flight_agent/
 │   │   ├── agent.py          # Flight Agent StateGraph
 │   │   ├── mock_data.py      # Mock flight data and dynamic fallback routes
@@ -54,7 +61,9 @@ This project is designed to satisfy the assignment rubric end-to-end:
 │   ├── flight_agent_graph.mmd
 │   ├── flight_agent_graph.png
 │   ├── hotel_agent_graph.mmd
-│   └── hotel_agent_graph.png
+│   ├── hotel_agent_graph.png
+│   ├── budget_agent_graph.mmd
+│   └── recommendation_agent_graph.mmd
 ├── scripts/
 │   ├── check_ollama.py
 │   └── export_graphs.py
@@ -62,6 +71,8 @@ This project is designed to satisfy the assignment rubric end-to-end:
 │   ├── test_flight_agent.py
 │   ├── test_hotel_agent.py
 │   ├── test_orchestrator.py
+│   ├── test_decision_agents.py
+│   ├── test_decision_integration.py
 │   ├── test_planner_kernel_advanced.py
 │   ├── test_llm_first_planner_regression.py
 │   ├── test_required_assignment_scenarios.py
@@ -142,6 +153,9 @@ User
 → clarification / routing decision
 → A2A Flight Agent and/or A2A Hotel Agent
 → aggregation
+→ per-ticket / per-night budget filtering
+→ A2A Budget Decision Agent: minimum complete-plan cost and feasibility
+→ A2A Recommendation Agent: scored choices and total-budget priority
 → friendly response
 ```
 
@@ -151,7 +165,8 @@ The design separates responsibilities clearly:
 - **LLM**: understands messy language and proposes a structured travel plan when local Ollama is enabled.
 - **Planner validation**: checks dates, routes, missing slots, scope, and stale state before any A2A task is created.
 - **LangGraph**: manages stateful orchestration and routing.
-- **A2A sub-agents**: execute typed flight/hotel searches only.
+- **A2A search agents**: execute typed flight/hotel searches.
+- **A2A decision agents**: assess all required legs/stays and recommend an explained combination after price filtering.
 - **A2A audit trail**: every request and response is stored in `a2a_messages` with task id, task type, direction, agent id, trace id, and serialized payload.
 - **Mock data layer**: returns realistic options without live API calls.
 - **Unsupported-location guard**: explicit travel locations outside the mock catalog return a clear no-data response before delegation.
@@ -178,14 +193,17 @@ flowchart TD
     after_flight -->|no| aggregation[Aggregation]
     parallel_a2a_delegation --> aggregation
     hotel_delegation --> aggregation
-    aggregation --> user_response_formatting
-    multi_city_delegation --> user_response_formatting
+    multi_city_delegation --> budget_filter[Apply per-ticket and per-night price limits]
+    aggregation --> budget_filter
+    budget_filter --> budget_assessment[Budget Decision Agent]
+    budget_assessment --> option_recommendation[Recommendation Agent]
+    option_recommendation --> user_response_formatting
     user_response_formatting --> END([END])
 ```
 
 Mermaid file: `graph_visualization/orchestrator_graph.mmd`
 
-![SyncTrip Orchestrator LangGraph](graph_visualization/orchestrator_graph.png)
+The Mermaid source above reflects the current five-workflow architecture. Existing PNG snapshots predate the decision agents; regenerate them with the commands in section 13 when PNG exports are needed.
 
 The orchestrator state tracks the assignment-required items directly: `conversation_history`, `travel_params`, `pending_clarifications`, `flight_response`, `hotel_response`, `final_aggregated_options`, and the extended `a2a_messages` protocol audit log.
 
@@ -308,7 +326,7 @@ Sub-agents always return:
   "clarification_needed": null,
   "error": null,
   "metadata": {
-    "agent_id": "flight-agent | hotel-agent",
+    "agent_id": "flight-agent | hotel-agent | budget-agent | recommendation-agent",
     "timestamp": "ISO-8601",
     "protocol_version": "a2a-mock-1.0",
     "trace_id": "uuid-string",
@@ -328,7 +346,7 @@ The orchestrator state keeps `a2a_messages`, a serializable audit trail of every
   "node": "flight_delegation | hotel_delegation | multi_city_delegation",
   "agent_id": "flight-agent | hotel-agent",
   "task_id": "uuid-string",
-  "task_type": "flight_search | hotel_search",
+  "task_type": "flight_search | hotel_search | budget_assessment | option_recommendation",
   "trace_id": "uuid-string",
   "payload": {}
 }
@@ -449,13 +467,13 @@ python -m pytest tests/test_orchestrator.py -q
 
 Tests deliberately disable Ollama so the suite is repeatable on every machine. The Streamlit app can still use Ollama for live semantic planning.
 
-Current submission suite: **246 collected tests**, including 95 matrix cases covering supported destinations, unsupported locations, and malformed A2A payloads.
+The main application suite includes the assignment matrix, planner and memory regressions, independent decision-agent tests, and conversational decision integration tests.
 
 ---
 
 ## 13. Graph export
 
-Mermaid source files and submission-ready PNG diagrams are committed in `graph_visualization/`. Refresh the Mermaid sources with:
+Mermaid sources for all five workflows are in `graph_visualization/`. Refresh them with:
 
 ```powershell
 python scripts/export_graphs.py
@@ -467,6 +485,8 @@ To regenerate the PNG files, paste each `.mmd` file into Mermaid Live Editor or 
 mmdc -i graph_visualization/orchestrator_graph.mmd -o graph_visualization/orchestrator_graph.png
 mmdc -i graph_visualization/flight_agent_graph.mmd -o graph_visualization/flight_agent_graph.png
 mmdc -i graph_visualization/hotel_agent_graph.mmd -o graph_visualization/hotel_agent_graph.png
+mmdc -i graph_visualization/budget_agent_graph.mmd -o graph_visualization/budget_agent_graph.png
+mmdc -i graph_visualization/recommendation_agent_graph.mmd -o graph_visualization/recommendation_agent_graph.png
 ```
 
 ---
@@ -480,7 +500,7 @@ mmdc -i graph_visualization/hotel_agent_graph.mmd -o graph_visualization/hotel_a
 - Fresh-plan language clears stale itinerary and traveller state.
 - Unsupported explicit locations never reach the booking agents.
 - Flight and Hotel Agent graphs run independently in unit tests.
-- Mermaid source and PNG diagrams match the implemented graph nodes.
+- Exported Mermaid sources match the implemented graph nodes.
 - No live API credentials are required for deterministic grading.
 
 ---
@@ -492,3 +512,51 @@ mmdc -i graph_visualization/hotel_agent_graph.mmd -o graph_visualization/hotel_a
 - Non-travel knowledge requests are politely declined instead of being forced into the travel planner.
 - The LLM proposes structured plans, but typed validators control execution.
 - Sub-agents are stateless by design and remain testable in isolation.
+
+---
+
+## 16. Decision agents
+
+Two small, deterministic decision modules extend the existing search workflow. Neither needs Ollama or additional dependencies.
+
+| Agent | Responsibility | Graph |
+|---|---|---|
+| `BudgetDecisionAgent` | Choose the minimum price in each required leg/stay, estimate combined costs, identify missing components, and report budget shortfall. | validate → assess budget → respond |
+| `RecommendationAgent` | Score options, select one per group, respect the total budget when feasible, and explain each choice. | validate → score → apply total budget → respond |
+
+### Try it
+
+```text
+Book flight and hotel from Singapore to Tokyo on 2027-07-25 returning 2027-07-30 for 2 travellers. Choose cheapest, total budget $3000.
+```
+
+Then change your decision preference without repeating the route:
+
+```text
+Prioritize comfort.
+```
+
+```text
+Use a balanced plan, total budget of $3500.
+```
+
+These preferences also apply to multi-city trips. The active trip retains them; `New trip` resets the strategy to balanced and clears its total budget. Per-ticket and per-night limits still run first, with the existing current-request/profile priority.
+
+### Scoring and budget behavior
+
+`budget` always selects the cheapest option in each group, using quality scores to break price ties. `balanced` and `comfort` use normalized scores from 0 to 100:
+
+| Strategy | Flight: price / duration / fewer stops | Hotel: price / stars / preferred area / refundable |
+|---|---|---|
+| balanced | 40% / 35% / 25% | 40% / 35% / 15% / 10% |
+| comfort | 15% / 45% / 40% | 15% / 45% / 25% / 15% |
+
+Price, duration, and hotel-star components are normalized within each group; fewer-stop benefit is `1 / (1 + stops)`. Preferred-area match and refundability are binary benefits. When there is no area preference, its component is equal for all hotels. Ties preserve the search order.
+
+If preferred selections exceed the total budget, the agent falls back to the cheapest available combination and says why. If even that combination costs too much, it reports a closest mock plan and the exact shortfall. This deliberately simple fallback does not optimize all possible combinations under a budget.
+
+Flight totals include **all passengers on every leg**. Hotel totals include **one room per night for every stay**, matching the current mock API; guest counts do not establish room capacity. Meals, local transport, and other expenses are excluded. Missing or filtered-out legs/stays produce a **partial subtotal**, never an affordable complete-plan claim.
+
+Both agents accept typed JSON A2A requests and return correlated task/trace metadata. A single-city package now has four tasks (two search + two decision); the three-leg/two-stay demo has seven. General advice and clarification do not run the decision agents. Enable **Show LangGraph trace** in Streamlit to inspect their structured decisions.
+
+Relevant files: [`agents/decision_schemas.py`](agents/decision_schemas.py), [`agents/budget_agent/agent.py`](agents/budget_agent/agent.py), [`agents/recommendation_agent/agent.py`](agents/recommendation_agent/agent.py), and [`orchestrator/decision_support.py`](orchestrator/decision_support.py).

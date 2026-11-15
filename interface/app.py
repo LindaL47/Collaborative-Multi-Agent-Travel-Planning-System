@@ -21,7 +21,7 @@ from orchestrator.memory_store import MemoryStore, MemoryStoreError, repeat_rout
 st.set_page_config(page_title="SyncTrip", page_icon="ST", layout="centered")
 
 st.title("SyncTrip")
-st.caption("Your travel planner for mock flights, hotels, and itinerary changes.")
+st.caption("Your travel planner for mock flights, hotels, budget estimates, and explained recommendations.")
 
 
 @st.cache_resource
@@ -149,6 +149,11 @@ with st.sidebar:
         st.write("Pending:", state.get("pending_clarifications", []))
         st.write("LLM diagnostics:", state.get("llm_diagnostics", {}))
         st.write("Active A2A task ids:", state.get("active_task_ids", []))
+        st.write("Decision strategy:", state.get("decision_strategy", "balanced"))
+        if state.get("budget_assessment"):
+            st.write("Budget assessment:", state["budget_assessment"].model_dump(mode="json"))
+        if state.get("recommendation"):
+            st.write("Recommendation:", state["recommendation"].model_dump(mode="json"))
         st.code(FriendlyAssistantOrchestrator.mermaid_diagram(), language="mermaid")
 
     if st.button("Reset conversation"):

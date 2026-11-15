@@ -12,7 +12,10 @@ flowchart TD
     after_flight -->|yes| hotel_delegation
     after_flight -->|no| aggregation[Aggregation]
     parallel_a2a_delegation --> aggregation
-    multi_city_delegation --> user_response_formatting
+    multi_city_delegation --> budget_filter[Apply budget preferences]
     hotel_delegation --> aggregation
-    aggregation --> user_response_formatting
+    aggregation --> budget_filter
+    budget_filter --> budget_assessment[Budget Decision Agent: estimate complete trip cost]
+    budget_assessment --> option_recommendation[Recommendation Agent: score and explain choices]
+    option_recommendation --> user_response_formatting
     user_response_formatting --> END([END])

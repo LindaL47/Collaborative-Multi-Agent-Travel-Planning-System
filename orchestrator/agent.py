@@ -3966,7 +3966,9 @@ class FriendlyAssistantOrchestrator:
     multi_city_delegation --> budget_filter[Apply budget preferences]
     hotel_delegation --> aggregation
     aggregation --> budget_filter
-    budget_filter --> user_response_formatting
+    budget_filter --> budget_assessment[Budget Decision Agent: estimate complete trip cost]
+    budget_assessment --> option_recommendation[Recommendation Agent: score and explain choices]
+    option_recommendation --> user_response_formatting
     user_response_formatting --> END([END])"""
 
 

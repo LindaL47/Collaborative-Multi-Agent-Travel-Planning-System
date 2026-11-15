@@ -1,0 +1,5 @@
+flowchart TD
+    START([START]) --> validate_input[Validate BudgetTaskRequest]
+    validate_input --> assess_budget[Estimate all legs and stays; assess budget]
+    assess_budget --> response_formatting[BudgetTaskResponse with cost and missing groups]
+    response_formatting --> END([END])

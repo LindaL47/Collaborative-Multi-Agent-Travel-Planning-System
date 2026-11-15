@@ -13,6 +13,8 @@ if str(ROOT) not in sys.path:
 
 from agents.flight_agent.agent import FlightBookingAgent
 from agents.hotel_agent.agent import HotelBookingAgent
+from agents.budget_agent.agent import BudgetDecisionAgent
+from agents.recommendation_agent.agent import RecommendationAgent
 from orchestrator.agent import FriendlyAssistantOrchestrator
 
 OUT = ROOT / "graph_visualization"
@@ -22,6 +24,8 @@ FILES = {
     "orchestrator_graph.mmd": FriendlyAssistantOrchestrator.mermaid_diagram(),
     "flight_agent_graph.mmd": FlightBookingAgent.mermaid_diagram(),
     "hotel_agent_graph.mmd": HotelBookingAgent.mermaid_diagram(),
+    "budget_agent_graph.mmd": BudgetDecisionAgent.mermaid_diagram(),
+    "recommendation_agent_graph.mmd": RecommendationAgent.mermaid_diagram(),
 }
 
 for name, content in FILES.items():
