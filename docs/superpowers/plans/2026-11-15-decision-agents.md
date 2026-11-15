@@ -31,11 +31,11 @@
 
 **Interfaces:** `BudgetDecisionAgent.invoke(BudgetTaskRequest | dict) -> BudgetTaskResponse`; `RecommendationAgent.invoke(RecommendationTaskRequest | dict) -> RecommendationTaskResponse`. Shared `DecisionParameters` contains flight/hotel groups, passengers, strategy, location preference, and optional total budget. Each result records completeness and missing groups.
 
-- [ ] Write tests for hand-calculated group costs, budget feasibility, incomplete groups, strategy-dependent choices, location matching, total-budget priority, and trace correlation.
-- [ ] Run `.venv/bin/python -m pytest tests/test_decision_agents.py -q`; confirm new behavior is missing.
-- [ ] Implement typed contracts and independent graphs using cost and normalized quality scores.
-- [ ] Run the new tests and existing `tests` suite; expect all passing.
-- [ ] Commit the two agents and tests.
+- [x] Write tests for hand-calculated group costs, budget feasibility, incomplete groups, strategy-dependent choices, location matching, total-budget priority, and trace correlation.
+- [x] Run `.venv/bin/python -m pytest tests/test_decision_agents.py -q`; confirm new behavior is missing.
+- [x] Implement typed contracts and independent graphs using cost and normalized quality scores.
+- [x] Run the new tests and existing `tests` suite; expect all passing.
+- [x] Commit the two agents and tests.
 
 ### Task 2: Connect decisions to conversational planning
 
@@ -43,12 +43,12 @@
 
 **Interfaces:** `build_decision_parameters(state: dict) -> DecisionParameters`; graph nodes `budget_assessment` and `option_recommendation` consume Task 1 contracts. Store typed results in `budget_assessment` and `recommendation`, and their exchanges in `a2a_messages`.
 
-- [ ] Write integration tests for round trips, multi-city plans, per-option filtering, total budget, preference changes, and stale-result clearing.
-- [ ] Run the integration tests; confirm the decision fields/nodes are absent.
-- [ ] Implement parameter grouping, chat preference extraction, graph nodes, A2A logging, and concise user-facing decision sections.
-- [ ] Update search-only task-count assertions to account for the two decision tasks while retaining request/response contract checks.
-- [ ] Run `.venv/bin/python -m pytest tests -q`; expect all passing.
-- [ ] Commit the integrated workflow and tests.
+- [x] Write integration tests for round trips, multi-city plans, per-option filtering, total budget, preference changes, and stale-result clearing.
+- [x] Run the integration tests; confirm the decision fields/nodes are absent.
+- [x] Implement parameter grouping, chat preference extraction, graph nodes, A2A logging, and concise user-facing decision sections.
+- [x] Update search-only task-count assertions to account for the two decision tasks while retaining request/response contract checks.
+- [x] Run `.venv/bin/python -m pytest tests -q`; expect all passing.
+- [x] Commit the integrated workflow and tests.
 
 ### Task 3: Document and verify the deliverable
 

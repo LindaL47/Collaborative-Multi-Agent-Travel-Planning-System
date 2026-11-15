@@ -93,10 +93,12 @@ def test_orchestrator_tracks_a2a_messages_for_package_delegation() -> None:
     assert state["pending_clarifications"] == []
     assert state["flight_response"].status == "success"
     assert state["hotel_response"].status == "success"
-    assert len(request_entries) == 2
-    assert len(response_entries) == 2
-    assert {entry["task_type"] for entry in request_entries} == {"flight_search", "hotel_search"}
-    assert len(state["active_task_ids"]) == 2
+    assert len(request_entries) == 4
+    assert len(response_entries) == 4
+    assert {entry["task_type"] for entry in request_entries} == {
+        "flight_search", "hotel_search", "budget_assessment", "option_recommendation",
+    }
+    assert len(state["active_task_ids"]) == 4
 
     response_by_task = {entry["task_id"]: entry for entry in response_entries}
     for request_entry in request_entries:
@@ -117,10 +119,12 @@ def test_orchestrator_tracks_a2a_messages_for_multi_city_fanout() -> None:
 
     assert state["route"] == "multi_city"
     assert state["pending_clarifications"] == []
-    assert len(request_entries) == 5
+    assert len(request_entries) == 7
     assert [entry["task_type"] for entry in request_entries].count("flight_search") == 3
     assert [entry["task_type"] for entry in request_entries].count("hotel_search") == 2
-    assert len(state["active_task_ids"]) == 5
+    assert [entry["task_type"] for entry in request_entries].count("budget_assessment") == 1
+    assert [entry["task_type"] for entry in request_entries].count("option_recommendation") == 1
+    assert len(state["active_task_ids"]) == 7
 
 
 def test_general_question_routes_to_neither_agent_and_keeps_empty_a2a_log() -> None:

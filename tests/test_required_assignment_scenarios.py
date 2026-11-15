@@ -28,7 +28,7 @@ def test_required_1_full_details_upfront_delegates_to_both_agents() -> None:
     assert state["route"] == "both"
     assert "Flight options" in state["message_to_show_user"]
     assert "Hotel options" in state["message_to_show_user"]
-    assert len(state["active_task_ids"]) == 2
+    assert len(state["active_task_ids"]) == 4
 
 
 def test_pdf_problem_statement_example_asks_for_exact_date_before_delegating() -> None:

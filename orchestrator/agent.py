@@ -27,10 +27,14 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env", override=False)
 from langgraph.graph import END, START, StateGraph
 from pydantic import ValidationError
 
+from agents.budget_agent.agent import BudgetDecisionAgent
+from agents.decision_schemas import BudgetAssessment, BudgetTaskRequest, BudgetTaskResponse, Recommendation, RecommendationTaskRequest, RecommendationTaskResponse
 from agents.flight_agent.agent import FlightBookingAgent
 from agents.flight_agent.schemas import CabinClass, FlightSearchParameters, FlightTaskRequest, FlightTaskResponse
 from agents.hotel_agent.agent import HotelBookingAgent
 from agents.hotel_agent.schemas import HotelSearchParameters, HotelTaskRequest, HotelTaskResponse, RoomType
+from agents.recommendation_agent.agent import RecommendationAgent
+from orchestrator.decision_support import build_decision_parameters, extract_decision_preferences, format_decision_summary
 from orchestrator.prompts import GENERAL_TRAVEL_SYSTEM_PROMPT, INTENT_EXTRACTION_SYSTEM_PROMPT
 from orchestrator.memory_store import MemoryStore, MemoryStoreError
 
@@ -225,6 +229,10 @@ class OrchestratorState(TypedDict, total=False):
     llm_diagnostics: Dict[str, Any]
     memory_profile: Dict[str, Any]
     trip_budget: Dict[str, int]
+    decision_strategy: str
+    decision_preferences_changed: bool
+    budget_assessment: Optional[BudgetAssessment]
+    recommendation: Optional[Recommendation]
     memory_warning: str
 
 
@@ -2649,8 +2657,8 @@ def _a2a_message(
 
 def _append_a2a_exchange(
     state: OrchestratorState,
-    request: FlightTaskRequest | HotelTaskRequest,
-    response: FlightTaskResponse | HotelTaskResponse,
+    request: FlightTaskRequest | HotelTaskRequest | BudgetTaskRequest | RecommendationTaskRequest,
+    response: FlightTaskResponse | HotelTaskResponse | BudgetTaskResponse | RecommendationTaskResponse,
     node: str,
 ) -> List[Dict[str, Any]]:
     """Append one request/response A2A pair to the conversation audit trail."""
@@ -2712,9 +2720,18 @@ def _merge_new_a2a_messages(base: List[Dict[str, Any]], candidates: List[List[Di
 class FriendlyAssistantOrchestrator:
     """User-facing conversational orchestrator for travel planning."""
 
-    def __init__(self, flight_agent: Optional[FlightBookingAgent] = None, hotel_agent: Optional[HotelBookingAgent] = None, memory_store: Optional[MemoryStore] = None) -> None:
+    def __init__(
+        self,
+        flight_agent: Optional[FlightBookingAgent] = None,
+        hotel_agent: Optional[HotelBookingAgent] = None,
+        memory_store: Optional[MemoryStore] = None,
+        budget_agent: Optional[BudgetDecisionAgent] = None,
+        recommendation_agent: Optional[RecommendationAgent] = None,
+    ) -> None:
         self.flight_agent = flight_agent or FlightBookingAgent()
         self.hotel_agent = hotel_agent or HotelBookingAgent()
+        self.budget_agent = budget_agent or BudgetDecisionAgent()
+        self.recommendation_agent = recommendation_agent or RecommendationAgent()
         self.memory_store = memory_store
         self.nlu = TravelNLU()
         self.graph = self._build_graph()
@@ -2739,7 +2756,15 @@ class FriendlyAssistantOrchestrator:
         initial_state["travel_params"] = params
         if re.search(r"\b(new plan|new trip|planning a new trip|plan a new trip|start over|fresh trip|fresh plan)\b", message.lower()):
             initial_state["trip_budget"] = {}
+            initial_state["decision_strategy"] = "balanced"
         budgets = dict(initial_state.get("trip_budget", {}))
+        decision_preferences = extract_decision_preferences(message)
+        if "total_budget_usd" in decision_preferences:
+            budgets["total_budget_usd"] = decision_preferences["total_budget_usd"]
+        initial_state["decision_strategy"] = decision_preferences.get("strategy", initial_state.get("decision_strategy", "balanced"))
+        initial_state["decision_preferences_changed"] = bool(decision_preferences)
+        initial_state["budget_assessment"] = None
+        initial_state["recommendation"] = None
         flight_limit = re.search(r"\bflight(?:s|\s+ticket)?(?:\s+(?:price|budget))?\s+(?:under|below|up to|less than)\s*\$?([1-9]\d*)\b", message, re.I)
         hotel_limit = re.search(r"\bhotel(?:s|\s+room)?(?:\s+(?:price|budget))?\s+(?:under|below|up to|less than)\s*\$?([1-9]\d*)(?:\s*/\s*night|\s+per\s+night)?\b", message, re.I)
         if flight_limit:
@@ -2793,6 +2818,8 @@ class FriendlyAssistantOrchestrator:
         graph.add_node("multi_city_delegation", self._multi_city_delegation_node)
         graph.add_node("aggregation", self._aggregation_node)
         graph.add_node("budget_filter", self._budget_filter_node)
+        graph.add_node("budget_assessment", self._budget_assessment_node)
+        graph.add_node("option_recommendation", self._option_recommendation_node)
         graph.add_node("user_response_formatting", self._user_response_formatting_node)
 
         graph.add_edge(START, "input_understanding")
@@ -2819,13 +2846,25 @@ class FriendlyAssistantOrchestrator:
         graph.add_edge("parallel_a2a_delegation", "aggregation")
         graph.add_edge("multi_city_delegation", "budget_filter")
         graph.add_edge("aggregation", "budget_filter")
-        graph.add_edge("budget_filter", "user_response_formatting")
+        graph.add_edge("budget_filter", "budget_assessment")
+        graph.add_edge("budget_assessment", "option_recommendation")
+        graph.add_edge("option_recommendation", "user_response_formatting")
         graph.add_edge("user_response_formatting", END)
         return graph.compile()
 
     def _input_understanding_node(self, state: OrchestratorState) -> OrchestratorState:
         message = state.get("current_message", "")
         extracted = self.nlu.extract(message, state)
+        if extracted.intent == "ambiguous" and state.get("decision_preferences_changed") and not extracted.entities.get("_fresh_plan"):
+            params = state.get("travel_params", {})
+            needs_flight, needs_hotel = bool(params.get("needs_flight")), bool(params.get("needs_hotel"))
+            if needs_flight or needs_hotel:
+                intent = "package_search" if needs_flight and needs_hotel else ("flight_search" if needs_flight else "hotel_search")
+                extracted = ExtractedIntent(
+                    intent=intent,
+                    entities={**extracted.entities, "needs_flight": needs_flight, "needs_hotel": needs_hotel},
+                    raw_text=message,
+                )
         history = list(state.get("conversation_history", []))
         history.append({"role": "user", "content": message})
         return {
@@ -3634,7 +3673,7 @@ class FriendlyAssistantOrchestrator:
                 response = self.flight_agent.invoke(request)
                 a2a_messages = _append_a2a_exchange({"a2a_messages": a2a_messages}, request, response, "multi_city_delegation")
                 if response.status in {"success", "partial"}:
-                    flight_segments.append({**leg, "options": response.results[:2]})
+                    flight_segments.append({**leg, "options": response.results})
                 else:
                     errors.append(response.error or response.clarification_needed or "A flight segment could not be searched.")
             except (ValidationError, KeyError, ValueError) as exc:
@@ -3657,7 +3696,7 @@ class FriendlyAssistantOrchestrator:
                 response = self.hotel_agent.invoke(request)
                 a2a_messages = _append_a2a_exchange({"a2a_messages": a2a_messages}, request, response, "multi_city_delegation")
                 if response.status in {"success", "partial"}:
-                    hotel_segments.append({**stay, "options": response.results[:2]})
+                    hotel_segments.append({**stay, "options": response.results})
                 else:
                     errors.append(response.error or response.clarification_needed or "A hotel stay could not be searched.")
             except (ValidationError, KeyError, ValueError) as exc:
@@ -3756,6 +3795,32 @@ class FriendlyAssistantOrchestrator:
         aggregated["budget_warnings"] = warnings
         return {**state, "final_aggregated_options": aggregated, "debug_trace": list(state.get("debug_trace", [])) + ["budget_filter"]}
 
+    def _budget_assessment_node(self, state: OrchestratorState) -> OrchestratorState:
+        request = BudgetTaskRequest(session_id=state["session_id"], parameters=build_decision_parameters(state))
+        response = self.budget_agent.invoke(request)
+        task_ids = list(state.get("active_task_ids", [])) + [request.task_id]
+        return {
+            **state,
+            "budget_assessment": response.results[0],
+            "a2a_messages": _append_a2a_exchange(state, request, response, "budget_assessment"),
+            "active_task_ids": task_ids,
+            "last_task_ids": task_ids,
+            "debug_trace": list(state.get("debug_trace", [])) + ["budget_assessment"],
+        }
+
+    def _option_recommendation_node(self, state: OrchestratorState) -> OrchestratorState:
+        request = RecommendationTaskRequest(session_id=state["session_id"], parameters=build_decision_parameters(state))
+        response = self.recommendation_agent.invoke(request)
+        task_ids = list(state.get("active_task_ids", [])) + [request.task_id]
+        return {
+            **state,
+            "recommendation": response.results[0],
+            "a2a_messages": _append_a2a_exchange(state, request, response, "option_recommendation"),
+            "active_task_ids": task_ids,
+            "last_task_ids": task_ids,
+            "debug_trace": list(state.get("debug_trace", [])) + ["option_recommendation"],
+        }
+
     def _user_response_formatting_node(self, state: OrchestratorState) -> OrchestratorState:
         if state.get("message_to_show_user"):
             message = state["message_to_show_user"]
@@ -3824,6 +3889,8 @@ class FriendlyAssistantOrchestrator:
         for warning in aggregated.get("budget_warnings", []):
             lines.append("\n" + warning)
 
+        lines.extend(format_decision_summary(state))
+
         if flights and not hotels and not params.get("needs_hotel"):
             lines.append("\nWould you like me to add hotel options for the same trip?")
             state["awaiting_hotel_offer"] = True
@@ -3876,6 +3943,7 @@ class FriendlyAssistantOrchestrator:
             lines.append("\nA quick note: one or more legs had limited mock availability, so I showed what I could find.")
         for warning in aggregated.get("budget_warnings", []):
             lines.append("\n" + warning)
+        lines.extend(format_decision_summary(state))
         return "\n".join(lines).strip()
 
     @staticmethod
