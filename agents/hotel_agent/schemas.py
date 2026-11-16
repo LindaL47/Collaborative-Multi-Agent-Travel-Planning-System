@@ -272,6 +272,14 @@ class HotelOption(BaseModel):
     distance_from_landmark: str
     room_type: RoomType = Field(default=RoomType.STANDARD)
     refundable: bool = True
+    # Optional presentation data for the mock dashboard. These are simulated,
+    # and are never represented as live hotel reviews, offers, or locations.
+    review_rating: Optional[float] = Field(default=None, ge=1, le=5)
+    review_count: Optional[int] = Field(default=None, ge=0)
+    original_price_per_night_usd: Optional[int] = Field(default=None, ge=1)
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
+    illustration_key: Optional[str] = None
 
     model_config = ConfigDict(extra="forbid", use_enum_values=True, validate_assignment=True, str_strip_whitespace=True)
 

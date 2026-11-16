@@ -35,6 +35,7 @@ from agents.hotel_agent.agent import HotelBookingAgent
 from agents.hotel_agent.schemas import HotelSearchParameters, HotelTaskRequest, HotelTaskResponse, RoomType
 from agents.recommendation_agent.agent import RecommendationAgent
 from orchestrator.decision_support import build_decision_parameters, extract_decision_preferences, format_decision_summary
+from orchestrator.response_localization import SUPPORTED_LANGUAGES, render_response
 from orchestrator.prompts import GENERAL_TRAVEL_SYSTEM_PROMPT, INTENT_EXTRACTION_SYSTEM_PROMPT
 from orchestrator.memory_store import MemoryStore, MemoryStoreError
 
@@ -233,6 +234,7 @@ class OrchestratorState(TypedDict, total=False):
     budget_assessment: Optional[BudgetAssessment]
     recommendation: Optional[Recommendation]
     memory_warning: str
+    response_language: str
 
 
 @dataclass(frozen=True)
@@ -2738,7 +2740,7 @@ class FriendlyAssistantOrchestrator:
         self.nlu = TravelNLU()
         self.graph = self._build_graph()
 
-    def chat(self, message: str, state: Optional[OrchestratorState] = None) -> OrchestratorState:
+    def chat(self, message: str, state: Optional[OrchestratorState] = None, language: str = "en") -> OrchestratorState:
         """Process one user turn and return the updated conversation state."""
         memory_data = None
         memory_warning = ""
@@ -2749,6 +2751,7 @@ class FriendlyAssistantOrchestrator:
                 memory_warning = str(exc)
         restored = memory_data.get("active", {}) if memory_data and state is None else {}
         initial_state: OrchestratorState = state.copy() if state else dict(restored)
+        initial_state["response_language"] = language if language in SUPPORTED_LANGUAGES else "en"
         profile = memory_data.get("profile", {}) if memory_data else initial_state.get("memory_profile", {})
         initial_state["memory_profile"] = profile
         params = dict(initial_state.get("travel_params", {}))
@@ -3830,6 +3833,7 @@ class FriendlyAssistantOrchestrator:
             message = state["message_to_show_user"]
         else:
             message = self._format_aggregated_response(state)
+        message = render_response(state, state.get("response_language", "en"), message)
 
         history = list(state.get("conversation_history", []))
         history.append({"role": "assistant", "content": message})

@@ -107,6 +107,31 @@ Priority is explicit current request, then active trip, then saved profile. A re
 
 ---
 
+### Dashboard demo data
+
+The Streamlit page is a travel dashboard with Flight, Hotel, and Trip/Chat tabs.
+Search forms use the same orchestrator as free-form chat. Hotel offer prices,
+review scores/counts, illustrations, and map markers are deterministic demo
+data. Map markers are approximate simulated points, not verified property
+addresses. “Add to trip” only selects an option in the current browser session;
+it does not make a reservation. The budget panel estimates selected flight
+prices multiplied by travellers plus one selected room multiplied by nights,
+excluding taxes and extras. UI assets and styles live in `interface/`.
+The language button at the top of the dashboard switches interface labels among
+Simplified Chinese, English, Japanese, and Spanish without clearing the current
+trip. New assistant replies follow the selected language for search results,
+clarifications, budget assessments, recommendations, and supported general
+travel answers. Earlier chat turns keep the language in which they were sent.
+Language selection controls replies; free-form input understanding still relies
+on the existing planner and is strongest for English requests.
+The dashboard's Memory section uses the same local `MemoryStore` as the
+orchestrator: it restores the recent conversation, saves profile preferences,
+archives plans, reuses saved routes without old dates, and clears local memory.
+The dashboard budget estimate is separate from the per-ticket and per-night
+price limits in the saved profile, which filter search results. When entered,
+the dashboard's total budget is also passed to the decision agents for budget
+assessment and recommendation.
+
 ## 4. Optional Ollama / local Llama mode
 
 The project runs without a cloud API key. Unit tests are deterministic and force heuristic mode from `tests/conftest.py`.

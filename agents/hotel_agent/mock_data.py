@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from hashlib import sha256
 from typing import Dict, List, Tuple
 
 from agents.hotel_agent.schemas import HotelOption, RoomType, normalize_city_code
@@ -63,6 +64,44 @@ CITY_LABELS: Dict[str, str] = {
     "NYC": "New York",
     "MEX": "Mexico City",
 }
+
+# Approximate city centers for simulated map markers, never property addresses.
+CITY_CENTERS: Dict[str, Tuple[float, float]] = {
+    "SIN": (1.2903, 103.8519), "TYO": (35.6762, 139.6503),
+    "PAR": (48.8566, 2.3522), "DXB": (25.2048, 55.2708),
+    "LON": (51.5072, -0.1276), "SYD": (-33.8688, 151.2093),
+    "BKK": (13.7563, 100.5018), "HKG": (22.3193, 114.1694),
+    "SEL": (37.5665, 126.9780), "KUL": (3.1390, 101.6869),
+    "BLR": (12.9716, 77.5946), "DEL": (28.6139, 77.2090),
+    "BOM": (19.0760, 72.8777), "DPS": (-8.6705, 115.2126),
+    "ZRH": (47.3769, 8.5417), "ROM": (41.9028, 12.4964),
+    "BCN": (41.3874, 2.1686), "SFO": (37.7749, -122.4194),
+    "YYZ": (43.6532, -79.3832), "NYC": (40.7128, -74.0060),
+    "MEX": (19.4326, -99.1332),
+}
+
+AREA_CENTERS: Dict[Tuple[str, str], Tuple[float, float]] = {
+    ("TYO", "shinjuku"): (35.6938, 139.7034),
+    ("TYO", "ginza"): (35.6717, 139.7650),
+    ("TYO", "asakusa"): (35.7148, 139.7967),
+}
+
+
+def _with_demo_details(hotel: HotelOption) -> HotelOption:
+    """Attach reproducible presentation values to static and generated hotels."""
+    seed = int.from_bytes(sha256(f"{hotel.destination}:{hotel.hotel_name}:{hotel.room_type}".encode()).digest()[:8], "big")
+    discount = 8 + seed % 17
+    center = AREA_CENTERS.get((hotel.destination, hotel.area.lower()), CITY_CENTERS.get(hotel.destination))
+    fields = {
+        "review_rating": round(min(4.9, max(3.8, hotel.star_rating - 0.2 + (seed % 5) * 0.1)), 1),
+        "review_count": 120 + seed % 1880,
+        "original_price_per_night_usd": round(hotel.price_per_night_usd / (1 - discount / 100)),
+        "illustration_key": "exterior" if seed % 2 else "lobby",
+    }
+    if center:
+        fields["latitude"] = round(center[0] + ((seed % 101) - 50) / 100000, 6)
+        fields["longitude"] = round(center[1] + (((seed // 101) % 101) - 50) / 100000, 6)
+    return HotelOption.model_validate({**hotel.model_dump(), **fields})
 
 CITY_DEFAULT_AREAS: Dict[str, List[Tuple[str, str]]] = {
     "SIN": [("Marina Bay", "Marina Bay Sands"), ("Orchard", "Orchard Road"), ("Chinatown", "Chinatown MRT")],
@@ -248,7 +287,7 @@ def search_mock_hotels(destination: str, room_type: str, location_preference: st
         ),
     )
 
-    return matches[:3]
+    return [_with_demo_details(hotel) for hotel in matches[:3]]
 
 
 def available_hotel_destinations(limit: int = 8) -> List[str]:
